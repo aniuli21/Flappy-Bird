@@ -1,9 +1,19 @@
 #include "LedControl.h" //  need the library
 #include <LiquidCrystal.h>
+#include <EEPROM.h>
 
-#define V0_PIN 9
-
-LedControl lc = LedControl(12, 11, 10, 1); 
+#define dataInPin 12
+#define clkPin 11
+#define loadPin 10
+#define deviceNumbers 1
+#define V0_PIN 9 
+#define RS 2
+#define EN 3
+#define D4 4
+#define D5 5
+#define D6 6
+#define D7 7 
+LedControl lc = LedControl(dataInPin, clkPin, loadPin, deviceNumbers); 
 
 //DIN, CLK, LOAD, No. DRIVER
 // pin 12 is connected to the MAX7219 pin 1
@@ -11,7 +21,7 @@ LedControl lc = LedControl(12, 11, 10, 1);
 // pin 10 is connected to LOAD pin 12
 // 1 as we are only using 1 MAX7219
 
-LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
+LiquidCrystal lcd(RS, EN, D4, D5, D6, D7);
  
 int col = 7;
 int opt;
@@ -32,8 +42,10 @@ int gameState = 0;
 int periodFall = 50;
 int periodJump = 50;
 int periodWalls = 100;
-int periodEnd = 1000;
+int periodEnd = 500;
 int buttonState;
+int highScore;
+int addr = 0;
 
 unsigned long currentTimeFall = 0;
 unsigned long currentTimeJump = 0;
@@ -67,11 +79,14 @@ void setup()
   pinMode(V0_PIN, OUTPUT); 
   analogWrite(V0_PIN, 90); 
   pinMode(buttonPin, INPUT);
+  highScore=(int)EEPROM.read(addr);
+  Serial.begin(9600);
 }
 
 void loop()
 { 
-  play();   
+  play();
+  Serial.println(buttonState);
 }
 
 void play()
@@ -92,7 +107,14 @@ void play()
   }
   else
   {
-    if (birdBodyY < 8 && (birdHeadY != wallPos1 || birdHeadX != col) && (birdHeadY != wallPos2 || birdHeadX != col) && (birdHeadY != wallPos3 || birdHeadX != col) && (birdHeadY != wallPos4 || birdHeadX != col) && (birdBodyY != wallPos1 || birdBodyX != col) && (birdBodyY != wallPos2 || birdBodyX != col) && (birdBodyY != wallPos3 || birdBodyX != col) && (birdBodyY != wallPos4 || birdBodyX != col) )
+    if (birdBodyY < 8 && (birdHeadY != wallPos1 || birdHeadX != col) 
+        && (birdHeadY != wallPos2 || birdHeadX != col) 
+        && (birdHeadY != wallPos3 || birdHeadX != col) 
+        && (birdHeadY != wallPos4 || birdHeadX != col) 
+        && (birdBodyY != wallPos1 || birdBodyX != col) 
+        && (birdBodyY != wallPos2 || birdBodyX != col) 
+        && (birdBodyY != wallPos3 || birdBodyX != col) 
+        && (birdBodyY != wallPos4 || birdBodyX != col))
     {
       continueGame();  
     }
@@ -102,7 +124,7 @@ void play()
     }
   }
 }
-
+//used to display the option to start game when 
 void mainMenu()
 {
   lc.setLed(0,birdHeadY,birdHeadX,true);
@@ -110,7 +132,7 @@ void mainMenu()
   lcd.setCursor(0,0);
   lcd.print("---START GAME---");
 }
-
+//used to run the game while not losing
 void continueGame()
 {
   showWalls();
@@ -131,7 +153,7 @@ void continueGame()
     jump(); 
   }
 }
-
+//used to display stats on lcd after losing
 void printScore()
 {
   lcd.clear();
@@ -139,24 +161,26 @@ void printScore()
   lcd.print("Your score is:");
   lcd.print(score);
   lcd.setCursor(0,1);
-  lcd.print("Press to restart");
+  lcd.print("High score: ");
+  lcd.print(highScore);                  
 }
-
+//used to update the score
 void raiseScore()
 {
   score++;
   lcd.clear();
-  lcd.print(score);
-  if (score % 5 == 0 && score != 0)
+  //lcd.print(score);
+  if (score % 5 == 0 && score != 0 && periodWalls != 0)
   {
     setDifficulty();
   }
 }
-
+//used to increase difficulty every 5 points
 void setDifficulty()
 {
   periodWalls = periodWalls - 20;
 }
+//used to turn on the wall
 void showWalls()
 {     
  currentTimeWallsShow = millis();
@@ -168,10 +192,10 @@ void showWalls()
    
  while (millis() < currentTimeWallsShow + periodWalls)
  {
-         
+   //wait periodWalls     
  }
 }
-
+//used to turn off the wall from one position behind
 void hideWalls()
 {
   lc.setLed(0,wallPos1,col+1,false);
@@ -179,7 +203,7 @@ void hideWalls()
   lc.setLed(0,wallPos3,col+1,false);
   lc.setLed(0,wallPos4,col+1,false);    
 }
-
+//used to generate random walls
 void randomWalls()
 { 
   opt = random(5);
@@ -244,7 +268,7 @@ void birdFall()
   
   while(millis() < currentTimeFall + periodFall)
   {
-    
+    //wait periodFall
   }
 }
 
@@ -272,18 +296,19 @@ void jump()
   }
   while(millis() < currentTimeJump + periodJump)
   {
-    
+    //wait periodJump
   }
 }
 
 void endGame()
 {
   printScore();
+  updateHighScore();
   currentTimeEnd = millis();
   displaySadFace();
   while(millis() < currentTimeEnd + periodEnd)
   {
-    
+    //wait periodEnd
   }
   if (buttonState == 1)
   {
@@ -318,4 +343,13 @@ void restart()
   wallPos4 = 7;
   score = 0;
   periodWalls = 100;
+}
+
+void updateHighScore()
+{
+  if (score > highScore)
+     {
+       highScore = score;
+     }
+  EEPROM.write(addr, (byte)highScore);
 }
