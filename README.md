@@ -1,7 +1,7 @@
 # Flappy-Bird
 An arduino game designed on a 8 x 8 matrix and 16 x 2 LCD.
 
-## Prerequisites 
+## What you need 
 ##### Pyshical Parts :
 * Arduino UNO
 * 1088AS LED Matrix
