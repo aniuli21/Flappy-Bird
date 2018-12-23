@@ -39,9 +39,9 @@ int birdBodyTopX = 0;
 int birdBodyTopY = 1;
 int score = 0;
 int gameState = 0;
-int periodFall = 50;
-int periodJump = 50;
-int periodWalls = 100;
+int periodFall = 100;
+int periodJump = 100;
+int periodWalls = 150;
 int periodEnd = 500;
 int buttonState;
 int highScore;
@@ -51,6 +51,7 @@ unsigned long currentTimeFall = 0;
 unsigned long currentTimeJump = 0;
 unsigned long currentTimeWallsShow = 0;
 unsigned long currentTimeEnd = 0;
+unsigned long currentTimeWallsHide = 0;
 
 const int buttonPin = 8;
 
@@ -77,7 +78,7 @@ void setup()
   lc.setLed(0,birdHeadY,birdHeadX,true);
   lc.setLed(0,birdBodyY,birdBodyX,true);
   pinMode(V0_PIN, OUTPUT); 
-  analogWrite(V0_PIN, 90); 
+  analogWrite(V0_PIN, 45); 
   pinMode(buttonPin, INPUT);
   highScore=(int)EEPROM.read(addr);
   Serial.begin(9600);
@@ -134,14 +135,18 @@ void mainMenu()
 }
 //used to run the game while not losing
 void continueGame()
-{
+{ 
+  if (millis() > currentTimeWallsShow + periodWalls)
+  {
+    currentTimeWallsShow = millis();
+    col--;
+    hideWalls();
+  }
   showWalls();
-  col--;
   if (buttonState == 0)
   {
     birdFall();
   }
-  hideWalls();
   if (col==-2)
   { 
     randomWalls();
@@ -182,26 +187,19 @@ void setDifficulty()
 }
 //used to turn on the wall
 void showWalls()
-{     
- currentTimeWallsShow = millis();
-  
- lc.setLed(0,wallPos1,col,true);
- lc.setLed(0,wallPos2,col,true);
- lc.setLed(0,wallPos3,col,true);
- lc.setLed(0,wallPos4,col,true);
-   
- while (millis() < currentTimeWallsShow + periodWalls)
- {
-   //wait periodWalls     
- }
+{ 
+  lc.setLed(0,wallPos1,col,true);
+  lc.setLed(0,wallPos2,col,true);
+  lc.setLed(0,wallPos3,col,true);
+  lc.setLed(0,wallPos4,col,true);
 }
 //used to turn off the wall from one position behind
 void hideWalls()
-{
+{ 
   lc.setLed(0,wallPos1,col+1,false);
   lc.setLed(0,wallPos2,col+1,false);
   lc.setLed(0,wallPos3,col+1,false);
-  lc.setLed(0,wallPos4,col+1,false);    
+  lc.setLed(0,wallPos4,col+1,false);  
 }
 //used to generate random walls
 void randomWalls()
@@ -255,48 +253,45 @@ void randomWalls()
 
 void birdFall()
 { 
-  currentTimeFall = millis();
-  
-  lc.setLed(0,birdHeadY,birdHeadX,false);
-  lc.setLed(0,birdBodyY,birdBodyX,false);
-      
-  birdBodyY++;
-  birdHeadY++;
-  
-  lc.setLed(0,birdHeadY,birdHeadX,true);
-  lc.setLed(0,birdBodyY,birdBodyX,true);
-  
-  while(millis() < currentTimeFall + periodFall)
+  if (currentTimeFall + periodFall < millis())
   {
-    //wait periodFall
+    currentTimeFall = millis();
+  
+    lc.setLed(0,birdHeadY,birdHeadX,false);
+    lc.setLed(0,birdBodyY,birdBodyX,false);
+      
+    birdBodyY++;
+    birdHeadY++;
+  
+    lc.setLed(0,birdHeadY,birdHeadX,true);
+    lc.setLed(0,birdBodyY,birdBodyX,true);
   }
 }
 
 void jump()
 { 
-  currentTimeJump = millis();
-  if (birdHeadY > 0)
+  if (currentTimeJump + periodJump < millis())
   {
-   lc.setLed(0,birdHeadY,birdHeadX,false);
-   lc.setLed(0,birdBodyY,birdBodyX,false);
+    currentTimeJump = millis();
+    if (birdHeadY > 0)
+    {
+     lc.setLed(0,birdHeadY,birdHeadX,false);
+     lc.setLed(0,birdBodyY,birdBodyX,false);
     
-   birdBodyY--;
-   birdHeadY--;
+     birdBodyY--;
+     birdHeadY--;
     
-   lc.setLed(0,birdHeadY,birdHeadX,true);
-   lc.setLed(0,birdBodyY,birdBodyX,true);
-  }
-  else
-  { 
-   lc.setLed(0,birdHeadY,birdHeadX,false);
-   lc.setLed(0,birdBodyY,birdBodyX,false);
+     lc.setLed(0,birdHeadY,birdHeadX,true);
+     lc.setLed(0,birdBodyY,birdBodyX,true);
+    }
+    else
+    { 
+     lc.setLed(0,birdHeadY,birdHeadX,false);
+     lc.setLed(0,birdBodyY,birdBodyX,false);
     
-   lc.setLed(0,birdHeadTopY,birdHeadTopX,true);
-   lc.setLed(0,birdBodyTopY,birdBodyTopX,true);
-  }
-  while(millis() < currentTimeJump + periodJump)
-  {
-    //wait periodJump
+     lc.setLed(0,birdHeadTopY,birdHeadTopX,true);
+     lc.setLed(0,birdBodyTopY,birdBodyTopX,true);
+    }
   }
 }
 
@@ -342,7 +337,7 @@ void restart()
   wallPos3 = 6;
   wallPos4 = 7;
   score = 0;
-  periodWalls = 100;
+  periodWalls = 150;
 }
 
 void updateHighScore()
